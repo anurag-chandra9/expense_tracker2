@@ -26,6 +26,6 @@
     "env": {
         "DJANGO_SETTINGS_MODULE": "expense_tracker.settings",
         "PYTHONPATH": ".",
-        "DEBUG": "True"
+        "DEBUG": "False"
     }
 }

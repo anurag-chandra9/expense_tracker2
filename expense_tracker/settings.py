@@ -76,8 +76,12 @@ DATABASES = {
 if os.getenv('VERCEL'):
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DATABASE'),
+            'USER': os.getenv('POSTGRES_USER'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': '5432',
         }
     }
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
