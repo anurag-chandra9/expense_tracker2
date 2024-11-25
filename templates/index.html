@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row animate-fade-in">
+    <!-- Total Expenses Card -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6>Total Expenses</h6>
+                    <h3>₹<span id="totalExpenses">Loading...</span></h3>
+                </div>
+                <div class="icon-circle">
+                    <i class="fas fa-rupee-sign"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-md-6 col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary bg-opacity-10">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <a href="{% url 'add_expense' %}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>Add New Expense
+                        </a>
+                    </div>
+                    <div class="col-sm-6">
+                        <a href="{% url 'expenses_list' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-list me-2"></i>View All Expenses
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Distribution -->
+<div class="row animate-fade-in" style="animation-delay: 0.2s;">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Expense Distribution
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" onclick="updateChart('month')">Month</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="updateChart('year')">Year</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary bg-opacity-10">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Category Breakdown
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Expenses -->
+<div class="row animate-fade-in" style="animation-delay: 0.4s;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Expenses
+                </h5>
+                <a href="{% url 'expenses_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentExpenses">
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    initializeCharts();
+    
+    // Load initial data immediately
+    updateTotalExpenses();
+    updateChartData('month');
+    loadRecentExpenses();
+    
+    // Set up auto-refresh every 30 seconds
+    setInterval(function() {
+        updateTotalExpenses();
+        updateChartData('month');
+        loadRecentExpenses();
+    }, 30000);
+
+    // Set up period switcher
+    document.querySelectorAll('.btn-group .btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+
+function initializeCharts() {
+    // Expense distribution chart
+    const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+    window.expenseChart = new Chart(expenseCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Expenses',
+                data: [],
+                borderColor: 'rgb(52, 152, 219)',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Category breakdown chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    window.categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    'rgb(52, 152, 219)',  // Blue
+                    'rgb(46, 204, 113)',  // Green
+                    'rgb(231, 76, 60)',   // Red
+                    'rgb(241, 196, 15)',  // Yellow
+                    'rgb(155, 89, 182)'   // Purple
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+function updateTotalExpenses() {
+    fetch("{% url 'api_total_expenses' %}")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.total !== undefined) {
+                document.getElementById('totalExpenses').textContent = 
+                    parseFloat(data.total).toLocaleString('en-IN', {
+                        style: 'decimal',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+            } else {
+                document.getElementById('totalExpenses').textContent = '0.00';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching total expenses:', error);
+            document.getElementById('totalExpenses').textContent = 'Error';
+        });
+}
+
+function updateChartData(period = 'month') {
+    fetch(`{% url 'api_chart_data' %}?period=${period}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update expense distribution chart
+            window.expenseChart.data.labels = data.labels;
+            window.expenseChart.data.datasets[0].data = data.values;
+            window.expenseChart.update();
+
+            // Update category breakdown chart
+            window.categoryChart.data.labels = data.categories;
+            window.categoryChart.data.datasets[0].data = data.category_values;
+            window.categoryChart.update();
+        });
+}
+
+function loadRecentExpenses() {
+    fetch("{% url 'api_recent_expenses' %}")
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('recentExpenses');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4">
+                            <i class="fas fa-receipt fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No expenses found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            data.forEach(expense => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(expense.date).toLocaleDateString()}</td>
+                    <td>${expense.title}</td>
+                    <td>
+                        <span class="badge rounded-pill bg-light text-dark">
+                            ${expense.category}
+                        </span>
+                    </td>
+                    <td class="text-end">₹${expense.amount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+}
+</script>
+{% endblock %}
