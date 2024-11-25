@@ -18,8 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .error_handlers import handler500
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('expenses.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if settings.MEDIA_URL and settings.MEDIA_ROOT:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler500 = 'expense_tracker.error_handlers.handler500'  # Register custom 500 handler
