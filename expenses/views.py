@@ -15,6 +15,7 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import authenticate
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
 
 @login_required
 @ensure_csrf_cookie
@@ -165,12 +166,27 @@ class UserLoginView(LoginView):
     
     def form_valid(self, form):
         """Security check complete. Log the user in."""
-        user = form.get_user()
-        if user.is_staff and not self.request.path.startswith('/admin/'):
-            form.add_error(None, "Staff accounts must use the admin login page.")
+        try:
+            user = form.get_user()
+            if user.is_staff and not self.request.path.startswith('/admin/'):
+                form.add_error(None, "Staff accounts must use the admin login page.")
+                return self.form_invalid(form)
+            auth_login(self.request, user)
+            messages.success(self.request, f"Welcome back, {user.username}!")
+            return super().form_valid(form)
+        except ValidationError as e:
+            form.add_error(None, str(e))
             return self.form_invalid(form)
-        auth_login(self.request, user)
-        return super().form_valid(form)
+        except Exception as e:
+            form.add_error(None, "An error occurred during login. Please try again.")
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        """If the form is invalid, render the invalid form."""
+        for field in form.errors:
+            for error in form.errors[field]:
+                messages.error(self.request, f"{error}")
+        return super().form_invalid(form)
 
 def register(request):
     if request.method == 'POST':
