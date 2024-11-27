@@ -20,7 +20,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-9)22361(r+9pr4h@(&ld!ognk)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['expense-tracker2-gamma.vercel.app', '.vercel.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['expense-tracker2-1dv4sievu-anurag-chandras-projects.vercel.app', 'expense-tracker2-gamma.vercel.app', '.vercel.app', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -44,6 +44,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://expense-tracker2-1dv4sievu-anurag-chandras-projects.vercel.app',
+    'https://expense-tracker2-gamma.vercel.app'
 ]
 
 ROOT_URLCONF = 'expense_tracker.urls'
