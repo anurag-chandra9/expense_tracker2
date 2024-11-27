@@ -5,14 +5,8 @@
             "src": "expense_tracker/wsgi.py",
             "use": "@vercel/python",
             "config": {
-                "maxLambdaSize": "15mb"
-            }
-        },
-        {
-            "src": "package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "staticfiles"
+                "maxLambdaSize": "15mb",
+                "runtime": "python3.9"
             }
         }
     ],
