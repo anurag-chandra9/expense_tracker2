@@ -20,12 +20,10 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from .cache_utils import cached_view, cache_result, invalidate_cache_prefix
 
+@login_required
 @ensure_csrf_cookie
 def index(request):
-    """Main dashboard view that handles both authenticated and non-authenticated users."""
-    if request.user.is_authenticated:
-        return render(request, 'index.html')
-    return render(request, 'public_dashboard.html')
+    return render(request, 'index.html')
 
 @login_required
 @cached_view(timeout=300)  # Cache for 5 minutes
@@ -143,10 +141,6 @@ def get_total_expenses(request):
         return JsonResponse({'total': float(total)})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-def public_dashboard(request):
-    """View for non-authenticated users to see basic expense tracking features."""
-    return render(request, 'public_dashboard.html')
 
 @login_required
 def profile_view(request):
