@@ -16,13 +16,20 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import authenticate
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+from .cache_utils import cached_view, cache_result, invalidate_cache_prefix
 
 @login_required
 @ensure_csrf_cookie
 def index(request):
-    return render(request, 'index.html')
+    """Main dashboard view that handles both authenticated and non-authenticated users."""
+    if request.user.is_authenticated:
+        return render(request, 'index.html')
+    return render(request, 'public_dashboard.html')
 
 @login_required
+@cached_view(timeout=300)  # Cache for 5 minutes
 def expenses_list(request):
     expenses = Expense.objects.filter(user=request.user).order_by('-date')
     paginator = Paginator(expenses, 10)  # Show 10 expenses per page
@@ -46,11 +53,17 @@ def add_expense(request):
             date=data['date'],
             category=data['category']
         )
+        # Invalidate relevant caches
+        invalidate_cache_prefix(f"view:expenses_list")
+        invalidate_cache_prefix(f"view:get_chart_data")
+        invalidate_cache_prefix(f"view:get_recent_expenses")
+        invalidate_cache_prefix(f"view:get_total_expenses")
         return JsonResponse({'success': True, 'id': expense.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
+@cached_view(timeout=300)  # Cache for 5 minutes
 def get_chart_data(request):
     period = request.GET.get('period', 'month')
     today = datetime.now()
@@ -109,6 +122,7 @@ def get_chart_data(request):
     })
 
 @login_required
+@cached_view(timeout=300)  # Cache for 5 minutes
 def get_recent_expenses(request):
     expenses = Expense.objects.filter(user=request.user).order_by('-date')[:5]
     data = []
@@ -123,12 +137,17 @@ def get_recent_expenses(request):
     return JsonResponse(data, safe=False)
 
 @login_required
+@cached_view(timeout=300)  # Cache for 5 minutes
 def get_total_expenses(request):
     try:
         total = Expense.objects.filter(user=request.user).aggregate(total=Sum('amount'))['total'] or 0
         return JsonResponse({'total': float(total)})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+def public_dashboard(request):
+    """View for non-authenticated users to see basic expense tracking features."""
+    return render(request, 'public_dashboard.html')
 
 @login_required
 def profile_view(request):
