@@ -20,7 +20,6 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from .cache_utils import cached_view, cache_result, invalidate_cache_prefix
 
-@login_required
 @ensure_csrf_cookie
 def index(request):
     """Main dashboard view that handles both authenticated and non-authenticated users."""
